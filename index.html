@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Early College Fit & Essay Coach</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+<script src="https://unpkg.com/marked@9.1.6/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] },
+      colors: {
+        brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e3a5f',900:'#1e293b' },
+        accent: { 400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed' },
+        mint: { 400:'#34d399',500:'#10b981' },
+        coral: { 400:'#fb923c',500:'#f97316' }
+      }
+    }
+  }
+}
+</script>
+<style>
+[x-cloak]{display:none!important}
+.tab-active{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;box-shadow:0 4px 15px rgba(59,130,246,.3)}
+.card-gradient{background:linear-gradient(135deg,#f0f9ff,#faf5ff)}
+.hero-gradient{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 50%,#7c3aed 100%)}
+.glass{background:rgba(255,255,255,.85);backdrop-filter:blur(12px)}
+.pulse-dot{animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.5)}}
+textarea:focus,input:focus,select:focus{outline:none;ring:2px;ring-color:#3b82f6}
+.fade-in{animation:fadeIn .4s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.progress-bar{transition:width .8s ease-in-out}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#93c5fd;border-radius:4px}
+</style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 min-h-screen" x-data="app()" x-init="init()" x-cloak>
+
+<!-- Header -->
+<header class="hero-gradient text-white sticky top-0 z-50 shadow-lg">
+  <div class="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl">🎓</span>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">College Fit & Essay Coach</h1>
+        <p class="text-xs text-blue-200" x-text="profile.name ? `Hey, ${profile.name}! 👋` : 'Your path to college starts here'"></p>
+      </div>
+    </div>
+    <button @click="showSettings = !showSettings" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+      <span class="text-xl">⚙️</span>
+    </button>
+  </div>
+</header>
+
+<!-- Tab Navigation -->
+<nav class="sticky top-[60px] z-40 glass border-b border-gray-200">
+  <div class="max-w-lg mx-auto px-3 py-2 flex gap-1.5 overflow-x-auto">
+    <template x-for="(tab, i) in tabs" :key="i">
+      <button @click="activeTab = i" 
+        :class="activeTab === i ? 'tab-active' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        class="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all min-w-[44px] min-h-[44px] flex items-center gap-1">
+        <span x-text="tab.icon"></span>
+        <span x-text="tab.label"></span>
+      </button>
+    </template>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-lg mx-auto px-4 py-4 pb-8">
+
+  <!-- Settings Modal -->
+  <div x-show="showSettings" x-transition class="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" @click.self="showSettings=false">
+    <div class="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 fade-in">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">⚙️ Settings</h2>
+        <button @click="showSettings=false" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center text-xl">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-medium text-gray-600">Your Role</label>
+          <select x-model="profile.role" @change="saveProfile()" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-gray-50 text-sm min-h-[44px]">
+            <option value="student">🧑‍🎓 Student</option>
+            <option value="parent">👨‍👩‍👧 Parent</option>
+            <option value="counselor">📋 Counselor</option>
+          </select>
+        </div>
+        <button @click="clearAllData()" class="w-full p-3 rounded-xl bg-red-50 text-red-600 font-medium text-sm hover:bg-red-100 transition min-h-[44px]">🗑️ Clear All Data & Start Fresh</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 0: Profile Setup -->
+  <div x-show="activeTab === 0" class="fade-in space-y-4">
+    <div class="card-gradient rounded-2xl p-5 border border-blue-100">
+      <h2 class="text-xl font-bold mb-1">📝 Your Profile</h2>
+      <p class="text-sm text-gray-500 mb-4">Tell us about yourself so we can build your personalized roadmap!</p>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-medium text-gray-600">Name *</label>
+          <input x-model="profile.name" @change="saveProfile()" type="text" placeholder="e.g. Alex Johnson" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm font-medium text-gray-600">Current Grade *</label>
+            <select x-model="profile.grade" @change="saveProfile()" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+              <option value="">Select...</option>
+              <option value="7">7th Grade</option>
+              <option value="8">8th Grade</option>
+              <option value="9">9th Grade</option>
+              <option value="10">10th Grade</option>
+              <option value="11">11th Grade</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-gray-600">GPA</label>
+            <input x-model="profile.gpa" @change="saveProfile()" type="number" step="0.1" min="0" max="5" placeholder="e.g. 3.7" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">State / Region</label>
+          <input x-model="profile.state" @change="saveProfile()" type="text" placeholder="e.g. California" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Top Interests & Passions 💡</label>
+          <textarea x-model="profile.interests" @change="saveProfile()" rows="2" placeholder="e.g. robotics, creative writing, community service, basketball" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm"></textarea>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Extracurriculars & Activities 🏆</label>
+          <textarea x-model="profile.extracurriculars" @change="saveProfile()" rows="2" placeholder="e.g. Math Olympiad, Student Council VP, Volunteer at animal shelter" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm"></textarea>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Favorite Subjects 📚</label>
+          <input x-model="profile.subjects" @change="saveProfile()" type="text" placeholder="e.g. Biology, English, Computer Science" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Dream Colleges (optional) 🏫</label>
+          <input x-model="profile.dreamSchools" @change="saveProfile()" type="text" placeholder="e.g. MIT, UCLA, Duke" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">College Preferences</label>
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <select x-model="profile.sizePreference" @change="saveProfile()" class="p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+              <option value="">Size...</option>
+              <option value="small">Small (&lt;5k)</option>
+              <option value="medium">Medium (5-15k)</option>
+              <option value="large">Large (15k+)</option>
+            </select>
+            <select x-model="profile.locationPreference" @change="saveProfile()" class="p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+              <option value="">Location...</option>
+              <option value="urban">Urban</option>
+              <option value="suburban">Suburban</option>
+              <option value="rural">Rural</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <div class="text-xs text-gray-400">Profile completeness</div>
+      <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full progress-bar" :style="`width:${profileCompleteness}%`"></div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1" x-text="`${profileCompleteness}% complete`"></div>
+    </div>
+  </div>
+
+  <!-- TAB 1: College Fit -->
+  <div x-show="activeTab === 1" class="fade-in space-y-4">
+    <div class="card-gradient rounded-2xl p-5 border border-purple-100">
+      <h2 class="text-xl font-bold mb-1">🎯 College Fit Finder</h2>
+      <p class="text-sm text-gray-500 mb-4">Get AI-powered college matches based on your unique profile!</p>
+      
+      <template x-if="!profile.name || !profile.grade">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+          ⚠️ Please complete your profile first (name & grade at minimum) to get personalized recommendations.
+          <button @click="activeTab=0" class="mt-2 text-blue-600 font-medium underline block">→ Go to Profile</button>
+        </div>
+      </template>
+
+      <template x-if="profile.name && profile.grade">
+        <div>
+          <button @click="generateCollegeFit()" :disabled="loadingFit" 
+            class="w-full p-4 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base hover:opacity-90 transition min-h-[52px] flex items-center justify-center gap-2 disabled:opacity-50">
+            <template x-if="loadingFit">
+              <span class="flex items-center gap-2">
+                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Analyzing your fit...
+              </span>
+            </template>
+            <template x-if="!loadingFit">
+              <span>🔍 Find My College Matches</span>
+            </template>
+          </button>
+
+          <template x-if="collegeFit">
+            <div class="mt-4 space-y-3">
+              <!-- Summary -->
+              <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <h3 class="font-bold text-sm text-gray-700 mb-2">📊 Your Fit Summary</h3>
+                <p class="text-sm text-gray-600" x-text="collegeFit.summary"></p>
+              </div>
+
+              <!-- Matches -->
+              <template x-for="(match, idx) in collegeFit.matches" :key="idx">
+                <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h4 class="font-bold text-base" x-text="match.name"></h4>
+                      <p class="text-xs text-gray-500" x-text="match.location"></p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold" 
+                      :class="match.fitLevel === 'Reach' ? 'bg-red-100 text-red-700' : match.fitLevel === 'Match' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'"
+                      x-text="match.fitLevel"></span>
+                  </div>
+                  <div class="mt-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500">Fit Score:</span>
+                      <div class="flex-1 bg-gray-200 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full progress-bar" :style="`width:${match.fitScore}%`"></div>
+                      </div>
+                      <span class="text-xs font-bold" x-text="`${match.fitScore}%`"></span>
+                    </div>
+                  </div>
+                  <p class="text-xs text-gray-600 mt-2" x-text="match.reason"></p>
+                  <div class="flex flex-wrap gap-1 mt-2">
+                    <template x-for="tag in match.strengthTags" :key="tag">
+                      <span class="px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full text-xs" x-text="tag"></span>
+                    </template>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Action Items -->
+              <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                <h3 class="font-bold text-sm text-green-800 mb-2">🚀 Next Steps This Semester</h3>
+                <ul class="space-y-1.5">
+                  <template x-for="(step, idx) in collegeFit.nextSteps" :key="idx">
+                    <li class="text-sm text-green-700 flex items-start gap-2">
+                      <span class="mt-0.5">✅</span>
+                      <span x-text="step"></span>
+                    </li>
+                  </template>
+                </ul>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- TAB 2: Roadmap -->
+  <div x-show="activeTab === 2" class="fade-in space-y-4">
+    <div class="card-gradient rounded-2xl p-5 border border-green-100">
+      <h2 class="text-xl font-bold mb-1">🗺️ Multi-Year Roadmap</h2>
+      <p class="text-sm text-gray-500 mb-4">Your personalized milestone plan from now through graduation!</p>
+
+      <template x-if="!profile.name || !profile.grade">
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+          ⚠️ Complete your profile first to generate a roadmap.
+          <button @click="activeTab=0" class="mt-2 text-blue-600 font-medium underline block">→ Go to Profile</button>
+        </div>
+      </template>
+
+      <template x-if="profile.name && profile.grade">
+        <div>
+          <button @click="generateRoadmap()" :disabled="loadingRoadmap"
+            class="w-full p-4 rounded-xl bg-gradient-to-r from-green-500 to-teal-600 text-white font-bold text-base hover:opacity-90 transition min-h-[52px] flex items-center justify-center gap-2 disabled:opacity-50">
+            <template x-if="loadingRoadmap">
+              <span class="flex items-center gap-2">
+                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Building your roadmap...
+              </span>
+            </template>
+            <template x-if="!loadingRoadmap">
+              <span>🗺️ Generate My Roadmap</span>
+            </template>
+          </button>
+
+          <template x-if="roadmap">
+            <div class="mt-4 space-y-3">
+              <template x-for="(year, yIdx) in roadmap.years" :key="yIdx">
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <button @click="year.open = !year.open" class="w-full p-4 flex items-center justify-between min-h-[52px] hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2">
+                      <span class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white flex items-center justify-center text-sm font-bold" x-text="year.gradeLabel"></span>
+                      <span class="font-bold text-sm" x-text="year.title"></span>
+                    </div>
+                    <svg :class="year.open && 'rotate-180'" class="w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
+                  <div x-show="year.open" x-transition class="px-4 pb-4">
+                    <template x-for="(q, qIdx) in year.quarters" :key="qIdx">
+                      <div class="mb-3">
+                        <h4 class="text-xs font-bold text-purple-600 mb-1" x-text="q.label"></h4>
+                        <ul class="space-y-1">
+                          <template x-for="(task, tIdx) in q.tasks" :key="tIdx">
+                            <li class="flex items-start gap-2 text-sm">
+                              <input type="checkbox" :checked="isTaskDone(year.gradeLabel, qIdx, tIdx)" @change="toggleTask(year.gradeLabel, qIdx, tIdx)" class="mt-0.5 w-4 h-4 rounded border-gray-300 min-w-[18px] min-h-[18px]">
+                              <span :class="isTaskDone(year.gradeLabel, qIdx, tIdx) && 'line-through text-gray-400'" x-text="task"></span>
+                            </li>
+                          </template>
+                        </ul>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- TAB 3: Essay Coach -->
+  <div x-show="activeTab === 3" class="fade-in space-y-4">
+    <div class="card-gradient rounded-2xl p-5 border border-orange-100">
+      <h2 class="text-xl font-bold mb-1">✍️ Essay Coach</h2>
+      <p class="text-sm text-gray-500 mb-4">Get AI coaching on your essays — preserve your voice, strengthen your story!</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-medium text-gray-600">Essay Prompt / Topic</label>
+          <input x-model="essayPrompt" type="text" placeholder="e.g. Describe a challenge you've overcome" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm min-h-[44px]">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Your Essay Draft ✏️</label>
+          <textarea x-model="essayDraft" rows="8" placeholder="Paste or type your essay draft here... Don't worry about perfection — that's what the coach is for! 😊" class="w-full mt-1 p-3 rounded-xl border border-gray-200 bg-white text-sm"></textarea>
+          <div class="flex justify-between mt-1">
+            <span class="text-xs text-gray-400" x-text="`${(essayDraft||'').split(/\s+/).filter(w=>w).length} words`"></span>
+            <span class="text-xs text-gray-400">Min 50 words recommended</span>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-gray-600">Focus Areas</label>
+          <div class="flex flex-wrap gap-2 mt-1">
+            <template x-for="focus in ['Voice & Authenticity','Structure','Grammar','Compelling Opening','Strong Conclusion','Show Don\'t Tell','Rubric Alignment']" :key="focus">
+              <button @click="toggleFocus(focus)" 
+                :class="essayFocus.includes(focus) ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600'"
+                class="px-3 py-1.5 rounded-full text-xs font-medium transition min-h-[36px]" x-text="focus"></button>
+            </template>
+          </div>
+        </div>
+
+        <button @click="coachEssay()" :disabled="loadingEssay || !essayDraft || essayDraft.split(/\s+/).filter(w=>w).length < 10"
+          class="w-full p-4 rounded-xl bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold text-base hover:opacity-90 transition min-h-[52px] flex items-center justify-center gap-2 disabled:opacity-50">
+          <template x-if="loadingEssay">
+            <span class="flex items-center gap-2">
+              <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              Coaching your essay...
+            </span>
+          </template>
+          <template x-if="!loadingEssay">
+            <span>🎯 Get Essay Coaching</span>
+          </template>
+        </button>
+
+        <template x-if="essayFeedback">
+          <div class="space-y-3 mt-2">
+            <!-- Score Overview -->
+            <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+              <h3 class="font-bold text-sm mb-3">📊 Essay Scorecard</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <template x-for="(score, key) in essayFeedback.scores" :key="key">
+                  <div class="text-center">
+                    <div class="text-2xl font-bold" :class="score >= 8 ? 'text-green-600' : score >= 6 ? 'text-yellow-600' : 'text-red-600'" x-text="score + '/10'"></div>
+                    <div class="text-xs text-gray-500" x-text="key"></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Strengths -->
+            <div class="bg-green-50 rounded-xl p-4 border border-green-100">
+              <h3 class="font-bold text-sm text-green-800 mb-2">💪 Strengths</h3>
+              <ul class="space-y-1">
+                <template x-for="s in essayFeedback.strengths" :key="s">
+                  <li class="text-sm text-green-700 flex items-start gap-2"><span>✨</span><span x-text="s"></span></li>
+                </template>
+              </ul>
+            </div>
+
+            <!-- Suggestions -->
+            <div class="bg-amber-50 rounded-xl p-4 border border-amber-100">
+              <h3 class="font-bold text-sm text-amber-800 mb-2">💡 Suggestions</h3>
+              <ul class="space-y-2">
+                <template x-for="s in essayFeedback.suggestions" :key="s.title">
+                  <li class="text-sm text-amber-700">
+                    <strong x-text="s.title + ': '"></strong><span x-text="s.detail"></span>
+                  </li>
+                </template>
+              </ul>
+            </div>
+
+            <!-- Revised Excerpt -->
+            <div class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+              <h3 class="font-bold text-sm text-blue-800 mb-2">✏️ Suggested Revision (preserving your voice)</h3>
+              <p class="text-sm text-blue-700 whitespace-pre-wrap" x-text="essayFeedback.revisedExcerpt"></p>
+            </div>
+
+            <!-- Plagiarism -->
+            <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+              <h3 class="font-bold text-sm mb-1">🔒 Authenticity Check</h3>
+              <p class="text-sm text-gray-600" x-text="essayFeedback.authenticityNote"></p>
+            </div>
+
+            <!-- Save to Portfolio -->
+            <button @click="saveEssayToPortfolio()" class="w-full p-3 rounded-xl bg-purple-100 text-purple-700 font-medium text-sm hover:bg-purple-200 transition min-h-[44px]">
+              📂 Save to My Essay Portfolio
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Portfolio -->
+  <div x-show="activeTab === 4" class="fade-in space-y-4">
+    <div class="card-gradient rounded-2xl p-5 border border-indigo-100">
+      <h2 class="text-xl font-bold mb-1">📂 My Portfolio</h2>
+      <p class="text-sm text-gray-500 mb-4">Your collection of essays and growth over time.</p>
+
+      <template x-if="portfolio.length === 0">
+        <div class="text-center py-8">
+          <span class="text-4xl block mb-2">📝</span>
+          <p class="text-sm text-gray-500">No essays saved yet. Use the Essay Coach to get started!</p>
+          <button @click="activeTab=3" class="mt-3 px-4 py-2 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium min-h-[44px]">✍️ Start Writing</button>
+        </div>
+      </template>
+
+      <div class="space-y-3">
+        <template x-for="(item, idx) in portfolio" :key="idx">
+          <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h4 class="font-bold text-sm" x-text="item.prompt || 'Untitled Essay'"></h4>
+                <p class="text-xs text-gray-400" x-text="new Date(item.date).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})"></p>
+                <div class="flex gap-2 mt-1">
+                  <template x-for="(score, key) in item.scores" :key="key">
+                    <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full" x-text="`${key}: ${score}/10`"></span>
+                  </template>
+                </div>
+              </div>
+              <button @click="portfolio.splice(idx,1); savePortfolio()" class="text-red-400 hover:text-red-600 w-8 h-8 flex items-center justify-center min-w-[36px] min-h-[36px]">🗑️</button>
+            </div>
+            <details class="mt-2">
+              <summary class="text-xs text-blue-600 cursor-pointer font-medium">View Draft</summary>
+              <p class="text-xs text-gray-600 mt-2 whitespace-pre-wrap" x-text="item.draft.substring(0,500) + (item.draft.length>500?'...':'')"></p>
+            </details>
+          </div>
+        </template>
+      </div>
+
+      <template x-if="portfolio.length >= 2">
+        <div class="mt-4">
+          <button @click="generateGrowthReport()" :disabled="loadingGrowth"
+            class="w-full p-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium text-sm hover:opacity-90 transition min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-50">
+            <template x-if="loadingGrowth">
+              <span class="flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Analyzing growth...
+              </span>
+            </template>
+            <template x-if="!loadingGrowth">
+              <span>📈 Generate Growth Report</span>
+            </template>
+          </button>
+
+          <template x-if="growthReport">
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100 mt-3">
+              <h3 class="font-bold text-sm text-indigo-800 mb-2">📈 Your Writing Growth</h3>
+              <p class="text-sm text-indigo-700 whitespace-pre-wrap" x-text="growthReport"></p>
+            </div>
+          </template>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <template x-if="errorMsg">
+    <div class="fixed bottom-4 left-4 right-4 max-w-lg mx-auto bg-red-50 border border-red-200 rounded-xl p-4 shadow-lg z-50 fade-in">
+      <div class="flex items-start gap-2">
+        <span>⚠️</span>
+        <div class="flex-1">
+          <p class="text-sm text-red-700" x-text="errorMsg"></p>
+        </div>
+        <button @click="errorMsg=''" class="text-red-400 hover:text-red-600 min-w-[36px] min-h-[36px] flex items-center justify-center">✕</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Success Toast -->
+  <template x-if="successMsg">
+    <div class="fixed bottom-4 left-4 right-4 max-w-lg mx-auto bg-green-50 border border-green-200 rounded-xl p-4 shadow-lg z-50 fade-in">
+      <div class="flex items-center gap-2">
+        <span>✅</span>
+        <p class="text-sm text-green-700" x-text="successMsg"></p>
+      </div>
+    </div>
+  </template>
+
+</main>
+
+<script>
+// Global AI tracking
+window.aiTotalInputTokens = 0;
+window.aiTotalOutputTokens = 0;
+window.aiTotalTime = 0;
+window.aiAliasTimes = {};
+
+function app() {
+  return {
+    activeTab: 0,
+    tabs: [
+      { icon: '👤', label: 'Profile' },
+      { icon: '🎯', label: 'Fit' },
+      { icon: '🗺️', label: 'Roadmap' },
+      { icon: '✍️', label: 'Essay' },
+      { icon: '📂', label: 'Portfolio' }
+    ],
+    showSettings: false,
+    profile: {
+      name: '', grade: '', gpa: '', state: '', interests: '', extracurriculars: '',
+      subjects: '', dreamSchools: '', sizePreference: '', locationPreference: '', role: 'student'
+    },
+    collegeFit: null,
+    loadingFit: false,
+    roadmap: null,
+    loadingRoadmap: false,
+    essayPrompt: '',
+    essayDraft: '',
+    essayFocus: [],
+    essayFeedback: null,
+    loadingEssay: false,
+    portfolio: [],
+    growthReport: null,
+    loadingGrowth: false,
+    errorMsg: '',
+    successMsg: '',
+    completedTasks: {},
+
+    get profileCompleteness() {
+      const fields = ['name','grade','gpa','state','interests','extracurriculars','subjects'];
+      const filled = fields.filter(f => this.profile[f] && String(this.profile[f]).trim()).length;
+      return Math.round((filled / fields.length) * 100);
+    },
+
+    init() {
+      const saved = localStorage.getItem('ecfec_profile');
+      if (saved) this.profile = { ...this.profile, ...JSON.parse(saved) };
+      const port = localStorage.getItem('ecfec_portfolio');
+      if (port) this.portfolio = JSON.parse(port);
+      const tasks = localStorage.getItem('ecfec_tasks');
+      if (tasks) this.completedTasks = JSON.parse(tasks);
+      const fit = localStorage.getItem('ecfec_fit');
+      if (fit) this.collegeFit = JSON.parse(fit);
+      const rm = localStorage.getItem('ecfec_roadmap');
+      if (rm) this.roadmap = JSON.parse(rm);
+
+      if (!this.profile.name) {
+        this.activeTab = 0;
+      }
+    },
+
+    saveProfile() {
+      localStorage.setItem('ecfec_profile', JSON.stringify(this.profile));
+    },
+    savePortfolio() {
+      localStorage.setItem('ecfec_portfolio', JSON.stringify(this.portfolio));
+    },
+    saveTasks() {
+      localStorage.setItem('ecfec_tasks', JSON.stringify(this.completedTasks));
+    },
+
+    clearAllData() {
+      localStorage.removeItem('ecfec_profile');
+      localStorage.removeItem('ecfec_portfolio');
+      localStorage.removeItem('ecfec_tasks');
+      localStorage.removeItem('ecfec_fit');
+      localStorage.removeItem('ecfec_roadmap');
+      this.profile = { name:'',grade:'',gpa:'',state:'',interests:'',extracurriculars:'',subjects:'',dreamSchools:'',sizePreference:'',locationPreference:'',role:'student' };
+      this.collegeFit = null;
+      this.roadmap = null;
+      this.portfolio = [];
+      this.completedTasks = {};
+      this.essayFeedback = null;
+      this.growthReport = null;
+      this.showSettings = false;
+      this.activeTab = 0;
+      this.showSuccess('All data cleared! Starting fresh 🌟');
+    },
+
+    toggleFocus(f) {
+      if (this.essayFocus.includes(f)) {
+        this.essayFocus = this.essayFocus.filter(x => x !== f);
+      } else {
+        this.essayFocus.push(f);
+      }
+    },
+
+    isTaskDone(grade, qIdx, tIdx) {
+      const key = `${grade}_${qIdx}_${tIdx}`;
+      return !!this.completedTasks[key];
+    },
+    toggleTask(grade, qIdx, tIdx) {
+      const key = `${grade}_${qIdx}_${tIdx}`;
+      this.completedTasks[key] = !this.completedTasks[key];
+      this.saveTasks();
+    },
+
+    showSuccess(msg) {
+      this.successMsg = msg;
+      setTimeout(() => this.successMsg = '', 3000);
+    },
+
+    async callAI(prompt, alias = 'genericAI', retries = 3) {
+      const startTime = Date.now();
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          const resp = await fetch('https://16504442930.work/run_prompt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alias, params: { prompt } })
+          });
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            if (attempt < retries - 1) continue;
+            // Format error with AI
+            const errPrompt = `Reformat this error message to be user-friendly and empowering. Help the user understand what went wrong and what they can do to fix it. Include the full API response. Error: ${JSON.stringify(data)}. Return a JSON object with a single key "friendlyError" of type string.`;
+            try {
+              const errResp = await fetch('https://16504442930.work/run_prompt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alias: 'genericAI', params: { prompt: errPrompt } })
+              });
+              const errData = await errResp.json();
+              throw new Error(errData.friendlyError || JSON.stringify(data));
+            } catch (e2) {
+              throw new Error(`Something went wrong. Please try again. Details: ${JSON.stringify(data)}`);
+            }
+          }
+          const elapsed = Date.now() - startTime;
+          window.aiTotalTime += elapsed;
+          window.aiAliasTimes[alias] = (window.aiAliasTimes[alias] || 0) + elapsed;
+          if (data.input_tokens) window.aiTotalInputTokens += data.input_tokens;
+          if (data.output_tokens) window.aiTotalOutputTokens += data.output_tokens;
+          return data;
+        } catch (err) {
+          if (attempt >= retries - 1) throw err;
+        }
+      }
+    },
+
+    async generateCollegeFit() {
+      this.loadingFit = true;
+      this.errorMsg = '';
+      try {
+        const p = this.profile;
+        const prompt = `You are an expert college admissions counselor. Based on this student profile, provide personalized college fit recommendations.
+
+Student Profile:
+- Name: ${p.name}
+- Current Grade: ${p.grade}th grade
+- GPA: ${p.gpa || 'Not provided'}
+- State: ${p.state || 'Not provided'}
+- Interests: ${p.interests || 'Not provided'}
+- Extracurriculars: ${p.extracurriculars || 'Not provided'}
+- Favorite Subjects: ${p.subjects || 'Not provided'}
+- Dream Schools: ${p.dreamSchools || 'Not provided'}
+- Preferred Size: ${p.sizePreference || 'No preference'}
+- Preferred Location: ${p.locationPreference || 'No preference'}
+
+Provide realistic, helpful, and encouraging recommendations. Include a mix of reach, match, and safety schools that genuinely align with the student's interests and profile.
+
+Return a JSON object with EXACTLY this structure:
+{
+  "summary": string (2-3 sentence overview of their college fit landscape),
+  "matches": [
+    {
+      "name": string (college name),
+      "location": string (city, state),
+      "fitLevel": string (exactly one of: "Reach", "Match", "Safety"),
+      "fitScore": number (integer 1-100),
+      "reason": string (1-2 sentences why this is a good fit),
+      "strengthTags": string[] (2-4 short tags like "Strong STEM", "Research Opportunities")
+    }
+  ] (exactly 6 colleges: 2 reach, 2 match, 2 safety),
+  "nextSteps": string[] (4-5 specific actionable next steps for this semester)
+}`;
+
+        const result = await this.callAI(prompt);
+        this.collegeFit = result;
+        localStorage.setItem('ecfec_fit', JSON.stringify(result));
+        this.showSuccess('College matches generated! 🎯');
+      } catch (e) {
+        this.errorMsg = e.message || 'Failed to generate college fit. Please try again.';
+      } finally {
+        this.loadingFit = false;
+      }
+    },
+
+    async generateRoadmap() {
+      this.loadingRoadmap = true;
+      this.errorMsg = '';
+      try {
+        const p = this.profile;
+        const currentGrade = parseInt(p.grade);
+        const gradesRemaining = [];
+        for (let g = currentGrade; g <= 12; g++) gradesRemaining.push(g);
+
+        const prompt = `You are an expert college prep counselor. Create a detailed multi-year roadmap for this student from their current grade through 12th grade graduation.
+
+Student Profile:
+- Name: ${p.name}
+- Current Grade: ${p.grade}th grade
+- GPA: ${p.gpa || 'Not provided'}
+- Interests: ${p.interests || 'Not provided'}
+- Extracurriculars: ${p.extracurriculars || 'Not provided'}
+- Favorite Subjects: ${p.subjects || 'Not provided'}
+- Dream Schools: ${p.dreamSchools || 'Not provided'}
+
+Create milestones for grades: ${gradesRemaining.join(', ')}
+
+Each year should have 4 quarters (Fall, Winter, Spring, Summer) with 3-5 specific, actionable tasks per quarter. Tasks should be age-appropriate and progressively build toward college readiness. Include academic, extracurricular, standardized testing, essay prep, and application milestones as appropriate.
+
+Return a JSON object with EXACTLY this structure:
+{
+  "years": [
+    {
+      "gradeLabel": string (e.g. "9"),
+      "title": string (e.g. "9th Grade - Foundation Year"),
+      "open": boolean (true only for the first/current grade, false for others),
+      "quarters": [
+        {
+          "label": string (e.g. "🍂 Fall"),
+          "tasks": string[] (3-5 specific actionable tasks)
+        }
+      ] (exactly 4 quarters per year)
+    }
+  ] (one entry per grade from ${currentGrade} through 12)
+}`;
+
+        const result = await this.callAI(prompt);
+        this.roadmap = result;
+        localStorage.setItem('ecfec_roadmap', JSON.stringify(result));
+        this.showSuccess('Roadmap generated! 🗺️');
+      } catch (e) {
+        this.errorMsg = e.message || 'Failed to generate roadmap. Please try again.';
+      } finally {
+        this.loadingRoadmap = false;
+      }
+    },
+
+    async coachEssay() {
+      this.loadingEssay = true;
+      this.errorMsg = '';
+      this.essayFeedback = null;
+      try {
+        const focusAreas = this.essayFocus.length > 0 ? this.essayFocus.join(', ') : 'all aspects';
+        const prompt = `You are an expert college admissions essay coach. Your job is to help students improve their essays while PRESERVING their authentic voice. Never rewrite in a way that sounds unlike the student.
+
+Student Info:
+- Name: ${this.profile.name || 'Student'}
+- Grade: ${this.profile.grade || 'Unknown'}th grade
+- Interests: ${this.profile.interests || 'Not provided'}
+
+Essay Prompt/Topic: ${this.essayPrompt || 'Not specified'}
+
+Essay Draft:
+"""
+${this.essayDraft}
+"""
+
+Focus Areas: ${focusAreas}
+
+Provide thorough, encouraging, and specific coaching feedback. Be warm and supportive while being honest about areas for improvement. Give concrete examples and suggestions.
+
+Return a JSON object with EXACTLY this structure:
+{
+  "scores": {
+    "Voice": number (integer 1-10),
+    "Structure": number (integer 1-10),
+    "Content": number (integer 1-10),
+    "Impact": number (integer 1-10)
+  },
+  "strengths": string[] (3-4 specific things the student did well, with quotes from their essay),
+  "suggestions": [
+    {
+      "title": string (short label like "Opening Hook"),
+      "detail": string (specific actionable suggestion with example)
+    }
+  ] (4-6 suggestions),
+  "revisedExcerpt": string (a revised version of the weakest paragraph that preserves the student's voice and style but improves it - make it clear which paragraph you're revising),
+  "authenticityNote": string (assessment of whether the essay sounds authentic and personal, any consistency concerns, and encouragement)
+}`;
+
+        const result = await this.callAI(prompt);
+        this.essayFeedback = result;
+        this.showSuccess('Essay coaching complete! ✍️');
+      } catch (e) {
+        this.errorMsg = e.message || 'Failed to coach essay. Please try again.';
+      } finally {
+        this.loadingEssay = false;
+      }
+    },
+
+    saveEssayToPortfolio() {
+      const entry = {
+        date: new Date().toISOString(),
+        prompt: this.essayPrompt,
+        draft: this.essayDraft,
+        scores: this.essayFeedback?.scores || {},
+        feedback: this.essayFeedback
+      };
+      this.portfolio.unshift(entry);
+      this.savePortfolio();
+      this.showSuccess('Essay saved to portfolio! 📂');
+    },
+
+    async generateGrowthReport() {
+      this.loadingGrowth = true;
+      this.errorMsg = '';
+      this.growthReport = null;
+      try {
+        const essaySummaries = this.portfolio.map((e, i) => ({
+          index: i + 1,
+          date: e.date,
+          prompt: e.prompt,
+          scores: e.scores,
+          wordCount: (e.draft || '').split(/\s+/).filter(w => w).length
+        }));
+
+        const prompt = `You are a writing growth analyst for a ${this.profile.grade || ''}th grade student named ${this.profile.name || 'the student'}.
+
+Here are their essay portfolio entries (most recent first):
+${JSON.stringify(essaySummaries, null, 2)}
+
+Analyze the growth trajectory across their essays. Comment on:
+1. Score trends across Voice, Structure, Content, and Impact
+2. Areas of most improvement
+3. Areas that still need work
+4. Encouragement and next goals
+5. How this growth positions them for college applications
+
+Be warm, specific, and encouraging. Use their actual scores and trends.
+
+Return a JSON object with EXACTLY this structure:
+{
+  "report": string (a 3-5 paragraph growth report with emoji, written directly to the student in second person)
+}`;
+
+        const result = await this.callAI(prompt);
+        this.growthReport = result.report;
+        this.showSuccess('Growth report generated! 📈');
+      } catch (e) {
+        this.errorMsg = e.message || 'Failed to generate growth report.';
+      } finally {
+        this.loadingGrowth = false;
+      }
+    }
+  };
+}
+</script>
+</body>
+</html>
